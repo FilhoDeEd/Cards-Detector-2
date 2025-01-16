@@ -8,6 +8,9 @@ from cv2.typing import MatLike
 
 cv2.namedWindow('tela') #temp
 
+CARD_WIDTH = 250
+CARD_HEIGHT = 363
+BACKGROUD = 450
 
 CARDS_PATH = 'datasets/cards'
 
@@ -70,14 +73,13 @@ CLASSES = {
 }
 
 
-def read_random_card() -> MatLike:
-    card_image = cv2.imread(os.path.join(CARDS_PATH, CARDS[random.randint(0, len(CARDS) - 1)]), cv2.IMREAD_UNCHANGED)
-    card_image = cv2.resize(card_image, (250, 363))
-    card_h, card_w, _ = card_image.shape
-    transparent_background = np.zeros((500, 500, 4), dtype=np.uint8)
-    card_pos_x = (500 - card_h) // 2
-    card_pos_y = (500 - card_w) // 2
-    transparent_background[card_pos_x:card_pos_x + card_h, card_pos_y:card_pos_y + card_w] = card_image
+def read_card(card_path: str) -> MatLike:
+    card_image = cv2.imread(os.path.join(CARDS_PATH, card_path), cv2.IMREAD_UNCHANGED)
+    card_image = cv2.resize(card_image, (CARD_WIDTH, CARD_HEIGHT))
+    transparent_background = np.zeros((BACKGROUD, BACKGROUD, 4), dtype=np.uint8)
+    card_pos_x = (BACKGROUD - CARD_HEIGHT) // 2
+    card_pos_y = (BACKGROUD - CARD_WIDTH) // 2
+    transparent_background[card_pos_x:card_pos_x + CARD_HEIGHT, card_pos_y:card_pos_y + CARD_WIDTH] = card_image
 
     return transparent_background
 
@@ -86,11 +88,34 @@ def rotate_image(image: MatLike, angle: int) -> MatLike:
     matrix_rotation = cv2.getRotationMatrix2D((height / 2, width / 2), angle, 1)
     return cv2.warpAffine(image, matrix_rotation, (height, width))
 
+def shear_image(image: MatLike, shear_x: float, shear_y: float) -> MatLike:
+    height, width, _ = image.shape
+
+    shear_matrix = np.array([
+        [1, shear_x, 0],
+        [shear_y, 1, 0]
+    ], dtype=np.float32)
+
+    new_width = int(width + abs(shear_x) * width)
+    new_height = int(height + abs(shear_y) * height)
+
+    sheared_image = cv2.warpAffine(image, shear_matrix, (new_width, new_height))
+
+    crop_y = (new_height - height) // 2
+    crop_x = (new_width - width) // 2
+
+    return sheared_image[crop_y: new_height - crop_y, crop_x: new_width - crop_x]
+
 path = kagglehub.dataset_download('ezzzio/random-images')
 
+card_image = read_card(CARDS[random.randint(0, len(CARDS) - 1)])
+
 angle = 30
-card_image = read_random_card()
 card_image = rotate_image(card_image, angle)
+
+shear_x = 0.0
+shear_y = 0.3
+card_image = shear_image(card_image, shear_x, shear_y)
 
 while True:
     cv2.imshow('tela', card_image)

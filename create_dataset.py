@@ -16,7 +16,6 @@ from typing import List, Tuple
 Range = namedtuple("Range", ["min", "max"])
 
 
-cv2.namedWindow('cartas') #temp
 cv2.namedWindow('backgroud') #temp
 
 CARD_WIDTH = 200 # 250
@@ -277,28 +276,15 @@ def draw_bounding_box(image: MatLike, bounding_box: NDArray) -> NDArray:
     return image
 
 
-def overlay_images(background: MatLike, card: MatLike, dx: int, dy: int) -> MatLike:
-    # Define the region of interest (ROI) on the background
-    roi = background[dy:dy + card.shape[0], dx:dx + card.shape[1]]
+def overlay_images(background_image, card_image): 
+    card_alpha = card_image[:, :, 3] / 255.0
 
-    # Assuming the card image has an alpha channel, extract the mask (alpha channel)
-    card_alpha = card[:, :, 3] if card.shape[2] == 4 else np.ones((card.shape[0], card.shape[1]), dtype=np.uint8)
+    masked_background = background_image * (1 - card_alpha[:, :, None])
+    masked_card = card_image * card_alpha[:, :, None]
 
-    # Ensure the mask is uint8
-    mask = card_alpha.astype(np.uint8)
-
-    # Apply the mask to the ROI
-    masked_roi = cv2.bitwise_and(roi, roi, mask=cv2.bitwise_not(mask))
-
-    # Now combine the card image with the background using the mask
-    card_rgb = card[:, :, :3]  # Discard the alpha channel for blending
-    masked_card = cv2.bitwise_and(card_rgb, card_rgb, mask=mask)
-
-    # Place the card on the background
-    combined = cv2.add(masked_roi, masked_card)
-    background[dy:dy + card.shape[0], dx:dx + card.shape[1]] = combined
-
-    return background
+    result = cv2.add(masked_background.astype(np.uint8), masked_card.astype(np.uint8))
+    
+    return result
 
 
 def main() -> None:
@@ -345,6 +331,7 @@ def main() -> None:
         try:
             background_image = cv2.imread(background_image_path)
             background_image = cv2.resize(background_image, (BACKGROUND_SIZE, BACKGROUND_SIZE))
+            background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2BGRA)
         except Exception as e:
             print(f"Erro ao processar {background_image_path}: {e}")
             continue
@@ -356,8 +343,6 @@ def main() -> None:
             break
 
         for _ in range(number_cards):
-            print('a')
-
             angle = random.uniform(ANGLE_RANGE.min, ANGLE_RANGE.max)
             shear_x = random.uniform(SHEAR_X_RANGE.min, SHEAR_X_RANGE.max)
             shear_y = random.uniform(SHEAR_Y_RANGE.min, SHEAR_Y_RANGE.max)
@@ -388,25 +373,19 @@ def main() -> None:
 
             card_image = blur_image(card_image, blur)
 
-            card_image = draw_bounding_box(card_image, bounding_box)
+            background_image = overlay_images(background_image, card_image)
 
-            #background_image = overlay_images(background_image, card_image)
-
-            # Colocar na imagem randomica
+            # background_image = draw_bounding_box(background_image, bounding_box)
 
             # normalized_oriented_bounding_box = normalize_oriented_bounding_box_yolo(oriented_bounding_box, card_image.shape) # o shape será da imagem final
             # print(normalized_oriented_bounding_box)
 
-            cv2.imshow('cards', card_image)
-            #cv2.imshow('background', background_image)
 
-            sleep(1)
+        cv2.imshow('background', background_image)
+        sleep(0.5)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cv2.destroyAllWindows()
 

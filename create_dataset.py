@@ -13,10 +13,18 @@ from numpy.typing import NDArray
 from time import sleep
 from typing import List, Tuple
 
+
 Range = namedtuple("Range", ["min", "max"])
 
 
-cv2.namedWindow('backgroud') #temp
+SEED = 42
+random.seed(SEED)
+
+NEW_DATASET_PATH = f'datasets/cards_detector_{SEED}'
+TRAIN_PROPORTION = 0.5
+TEST_PROPORTION = 0.3
+VALIDATION_PROPORTION = 0.2
+IMAGES_BATCHS = 500
 
 CARD_WIDTH = 200 # 250
 CARD_HEIGHT = 290 # 363
@@ -252,19 +260,19 @@ def translate_bounding_box(bounding_box: NDArray, dx: int, dy: int) -> NDArray:
     return translated_bounding_box
 
 
-def normalize_oriented_bounding_box_yolo(bounding_box: NDArray, image_shape: tuple) -> NDArray:
+def create_yolo_OBB(class_index: int, oriented_bounding_box: NDArray, image_shape: tuple) -> NDArray:
     image_height, image_width, _ = image_shape
     
-    points = bounding_box.flatten()
+    points = oriented_bounding_box.flatten()
 
-    normalized_points = []
+    yolo_oriented_bounding_box = [class_index]
     for i in range(0, len(points), 2):
         x = points[i]
         y = points[i + 1]
-        normalized_points.append(x / image_width)
-        normalized_points.append(y / image_height)
+        yolo_oriented_bounding_box.append(x / image_width)
+        yolo_oriented_bounding_box.append(y / image_height)
 
-    return np.array(normalized_points)
+    return np.array(yolo_oriented_bounding_box)
 
 
 def draw_bounding_box(image: MatLike, bounding_box: NDArray) -> NDArray:
@@ -377,9 +385,9 @@ def main() -> None:
 
             # background_image = draw_bounding_box(background_image, bounding_box)
 
-            # normalized_oriented_bounding_box = normalize_oriented_bounding_box_yolo(oriented_bounding_box, card_image.shape) # o shape será da imagem final
-            # print(normalized_oriented_bounding_box)
+            yolo_oriented_bounding_box = create_yolo_OBB(random_card_class, bounding_box, background_image.shape)
 
+            # Criar um set de obbox
 
         cv2.imshow('background', background_image)
         sleep(0.5)

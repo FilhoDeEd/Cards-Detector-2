@@ -1,5 +1,7 @@
 # Linux 64-bit
 
+# Deixe sem pytorch nem ultralytics (então explique como baixar usando pip)
+
 beautifulsoup4==4.12.3
 certifi==2024.12.14
 charset-normalizer==3.4.1

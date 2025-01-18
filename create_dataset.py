@@ -11,7 +11,6 @@ import zipfile
 from collections import namedtuple
 from cv2.typing import MatLike
 from numpy.typing import NDArray
-from time import sleep
 from typing import Any, List, Tuple
 
 

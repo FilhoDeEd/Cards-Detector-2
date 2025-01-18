@@ -6,7 +6,7 @@ MODEL_NAME = 'cards_detector'
 YOLO_BASE_MODEL = 'yolov8n-obb.pt'
 DATASET_YAML_PATH = 'datasets/cards_detector_42/data.yml'
 IMAGE_SIZE = 960
-BATCH = 8
+BATCH = 4
 EPOCHS = 50
 
 

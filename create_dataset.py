@@ -1,5 +1,6 @@
 import cv2
 import gdown
+import hashlib
 import kagglehub
 import math
 import numpy as np
@@ -11,23 +12,25 @@ from collections import namedtuple
 from cv2.typing import MatLike
 from numpy.typing import NDArray
 from time import sleep
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 
-Range = namedtuple("Range", ["min", "max"])
+Range = namedtuple('Range', ['min', 'max'])
 
 
 SEED = 42
 random.seed(SEED)
 
 NEW_DATASET_PATH = f'datasets/cards_detector_{SEED}'
-TRAIN_PROPORTION = 0.5
-TEST_PROPORTION = 0.3
-VALIDATION_PROPORTION = 0.2
-IMAGES_BATCHS = 500
+TRAIN_SPLIT = 0.5
+TEST_SPLIT = 0.3
+VALIDATION_SPLIT = 0.2
+MAX_DATASET_BATCH = 500
+RANDOM_IMAGES_AMOUNT = 1000 #4984     # Until 31368
+WHITE_IMAGES_AMOUNT = 1000 #2016      # Until 2016
 
-CARD_WIDTH = 200 # 250
-CARD_HEIGHT = 290 # 363
+CARD_WIDTH = 200                      # Other 250
+CARD_HEIGHT = 290                     # Other 363
 CARD_DIAGONAL = math.hypot(CARD_WIDTH, CARD_HEIGHT)
 BACKGROUND_SIZE = 960
 CARDS_PATH = 'datasets/cards'
@@ -144,7 +147,7 @@ def shear_image(image: MatLike, shear_x: float, shear_y: float) -> MatLike:
 
 def scale_image(image: MatLike, scale: float) -> MatLike:
     if scale <= 0:
-        raise ValueError("O fator de escala deve ser maior que 0.")
+        raise ValueError('O fator de escala deve ser maior que 0.')
 
     height, width, depth = image.shape
 
@@ -295,6 +298,46 @@ def overlay_images(background_image, card_image):
     return result
 
 
+def write_dataset(unique_info: (str | int), dataset_batch: Any, train_split: float, test_split: float) -> None:
+    print('SAVING BATCH...')
+
+    base_dirs = {
+        'train': os.path.join(NEW_DATASET_PATH, 'train'),
+        'test': os.path.join(NEW_DATASET_PATH, 'test'),
+        'validation': os.path.join(NEW_DATASET_PATH, 'validation'),
+    }
+
+    for split in base_dirs:
+        os.makedirs(os.path.join(base_dirs[split], 'images'), exist_ok=True)
+        os.makedirs(os.path.join(base_dirs[split], 'bbox'), exist_ok=True)
+
+    total = len(dataset_batch)
+    train_size = int(total * train_split)
+    test_size = int(total * test_split)
+    validation_size = total - train_size - test_size
+
+    splits = (
+        ['train'] * train_size +
+        ['test'] * test_size +
+        ['validation'] * validation_size
+    )
+    random.shuffle(splits)
+
+    for i, (image, obbs) in enumerate(dataset_batch):
+        split = splits[i]
+
+        hash = hashlib.md5(f'{unique_info}_{SEED}_{i}'.encode()).hexdigest()[:8]
+        image_filename = os.path.join(base_dirs[split], 'images', f'{hash}.png')
+        bbox_filename = os.path.join(base_dirs[split], 'bbox', f'{hash}.txt')
+
+        cv2.imwrite(image_filename, image)
+
+        with open(bbox_filename, 'w') as bbox_file:
+            for obb in obbs:
+                bbox_str = ' '.join(map(str, obb))
+                bbox_file.write(f'{bbox_str}\n')
+
+
 def main() -> None:
     background_images = []
 
@@ -306,7 +349,7 @@ def main() -> None:
             if '.jpg' in name or '.jpeg' in name:
                 random_images.append(os.path.join(root, name))
 
-    background_images.extend(random.sample(random_images, 7000))
+    background_images.extend(random.sample(random_images, RANDOM_IMAGES_AMOUNT))
 
     white_images = []
     google_drive_zip = 'datasets/white_images.zip'
@@ -324,7 +367,7 @@ def main() -> None:
             if '.jpg' in name or '.jpeg' in name:
                 white_images.append(os.path.join(root, name))
 
-    background_images.extend(white_images)
+    background_images.extend(random.sample(white_images, WHITE_IMAGES_AMOUNT))
 
     card_classes = list(CLASSES.keys())
     background_images_count = len(background_images)
@@ -335,16 +378,25 @@ def main() -> None:
 
     random.shuffle(background_images)
 
+    dataset_batch = []
+
+    progress = 0
+    total = len(background_images)
+
     for background_image_path in background_images:
+        print(f'PROGRESS: {progress}/{total}')
+
         try:
             background_image = cv2.imread(background_image_path)
             background_image = cv2.resize(background_image, (BACKGROUND_SIZE, BACKGROUND_SIZE))
             background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2BGRA)
         except Exception as e:
-            print(f"Erro ao processar {background_image_path}: {e}")
+            print(f'Erro ao processar {background_image_path}: {e}')
             continue
 
         last_translates = []
+        background_image_OBBs = []
+        background_image_filename = os.path.basename(background_image_path)
         number_cards = random.randint(CARDS_RANGE.min, CARDS_RANGE.max)
 
         if sum(list(remaining_images_by_class.values())) < number_cards:
@@ -385,17 +437,21 @@ def main() -> None:
 
             # background_image = draw_bounding_box(background_image, bounding_box)
 
-            yolo_oriented_bounding_box = create_yolo_OBB(random_card_class, bounding_box, background_image.shape)
+            yolo_OBB = create_yolo_OBB(random_card_class, bounding_box, background_image.shape)
 
-            # Criar um set de obbox
+            background_image_OBBs.append(yolo_OBB)
 
-        cv2.imshow('background', background_image)
-        sleep(0.5)
+        dataset_batch.append((background_image, background_image_OBBs))
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        if len(dataset_batch) >= MAX_DATASET_BATCH:
+            write_dataset(background_image_filename, dataset_batch, TRAIN_SPLIT, TEST_SPLIT)
+            dataset_batch = []
 
-    cv2.destroyAllWindows()
+        progress += 1
+
+    if len(dataset_batch) > 0:
+        write_dataset(background_image_filename, dataset_batch, TRAIN_SPLIT, TEST_SPLIT)
+        dataset_batch = []
 
 
 if __name__ == '__main__':

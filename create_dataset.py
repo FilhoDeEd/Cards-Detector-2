@@ -26,8 +26,8 @@ TRAIN_SPLIT = 0.5
 TEST_SPLIT = 0.3
 VALIDATION_SPLIT = 0.2
 MAX_DATASET_BATCH = 500
-RANDOM_IMAGES_AMOUNT = 1000 #4984     # Until 31368
-WHITE_IMAGES_AMOUNT = 1000 #2016      # Until 2016
+RANDOM_IMAGES_AMOUNT = 4984     # Until 31368
+WHITE_IMAGES_AMOUNT = 2016      # Until 2016
 
 CARD_WIDTH = 200                      # Other 250
 CARD_HEIGHT = 290                     # Other 363
@@ -309,7 +309,7 @@ def write_dataset(unique_info: (str | int), dataset_batch: Any, train_split: flo
 
     for split in base_dirs:
         os.makedirs(os.path.join(base_dirs[split], 'images'), exist_ok=True)
-        os.makedirs(os.path.join(base_dirs[split], 'bbox'), exist_ok=True)
+        os.makedirs(os.path.join(base_dirs[split], 'labels'), exist_ok=True)
 
     total = len(dataset_batch)
     train_size = int(total * train_split)
@@ -328,7 +328,7 @@ def write_dataset(unique_info: (str | int), dataset_batch: Any, train_split: flo
 
         hash = hashlib.md5(f'{unique_info}_{SEED}_{i}'.encode()).hexdigest()[:8]
         image_filename = os.path.join(base_dirs[split], 'images', f'{hash}.png')
-        bbox_filename = os.path.join(base_dirs[split], 'bbox', f'{hash}.txt')
+        bbox_filename = os.path.join(base_dirs[split], 'labels', f'{hash}.txt')
 
         cv2.imwrite(image_filename, image)
 

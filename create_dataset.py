@@ -17,7 +17,7 @@ from typing import Any, List, Tuple
 Range = namedtuple('Range', ['min', 'max'])
 
 
-SEED = 42
+SEED = 1025
 random.seed(SEED)
 
 NEW_DATASET_PATH = f'datasets/cards_detector_{SEED}'
@@ -25,8 +25,8 @@ TRAIN_SPLIT = 0.5
 TEST_SPLIT = 0.3
 VALIDATION_SPLIT = 0.2
 MAX_DATASET_BATCH = 500
-RANDOM_IMAGES_AMOUNT = 4984     # Until 31368
-WHITE_IMAGES_AMOUNT = 2016      # Until 2016
+RANDOM_IMAGES_AMOUNT = 700 #4984     # Until 31368
+WHITE_IMAGES_AMOUNT = 300 #2016      # Until 2016
 
 CARD_WIDTH = 200                      # Other 250
 CARD_HEIGHT = 290                     # Other 363
@@ -40,6 +40,9 @@ SHEAR_X_RANGE = Range(-0.1, 0.1)
 SHEAR_Y_RANGE = Range(-0.1, 0.1)
 SCALE_RANGE = Range(0.7, 1.2)
 BLUR_RANGE = Range(3, 7)
+NOISE_RANGE = Range(0.02, 0.14)
+BRIGHTNESS_RANGE = Range(0.4, 0.9)
+
 TRANSLATE_STEP = 50
 PREVENT_OVERLAPPING = True
 
@@ -226,6 +229,48 @@ def is_overlapping(rect1, rect2):
     return not (x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1)
 
 
+def add_noise_to_image(image: MatLike, noise_type: str = "gaussian", intensity: float = 0.1) -> MatLike:
+    if noise_type == "gaussian":
+        mean = 0
+        stddev = intensity * 255
+        gaussian_noise = np.random.normal(mean, stddev, image.shape).astype(np.float32)
+        noisy_image = cv2.add(image.astype(np.float32), gaussian_noise)
+        noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
+    elif noise_type == "salt_and_pepper":
+        noisy_image = image.copy()
+        salt_pepper_ratio = 0.5
+        total_pixels = int(intensity * image.size)
+        num_salt = int(salt_pepper_ratio * total_pixels)
+        num_pepper = total_pixels - num_salt
+
+        # Adiciona sal (branco)
+        coords = [np.random.randint(0, i - 1, num_salt) for i in image.shape[:2]]
+        noisy_image[coords[0], coords[1]] = 255
+
+        # Adiciona pimenta (preto)
+        coords = [np.random.randint(0, i - 1, num_pepper) for i in image.shape[:2]]
+        noisy_image[coords[0], coords[1]] = 0
+    else:
+        raise ValueError(f"Tipo de ruído '{noise_type}' não suportado.")
+
+    return noisy_image
+
+
+def change_image_brightness(image: MatLike, brightness_factor: float) -> MatLike:
+    if image.shape[-1] == 4:
+        rgb = image[..., :3].astype(np.float32)
+        alpha = image[..., 3]
+        
+        rgb = rgb * brightness_factor
+        rgb = np.clip(rgb, 0, 255).astype(np.uint8)
+        
+        return np.dstack((rgb, alpha))
+    else:
+        image = image.astype(np.float32)
+        image = image * brightness_factor
+        return np.clip(image, 0, 255).astype(np.uint8)
+
+
 def find_bounding_box(image: MatLike) -> NDArray:
     gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
     
@@ -407,6 +452,7 @@ def main() -> None:
             shear_y = random.uniform(SHEAR_Y_RANGE.min, SHEAR_Y_RANGE.max)
             scale = random.uniform(SCALE_RANGE.min, SCALE_RANGE.max)
             blur = random.randrange(BLUR_RANGE.min, BLUR_RANGE.max, 2)
+            brightness = random.uniform(BRIGHTNESS_RANGE.min, BRIGHTNESS_RANGE.max)
             dx, dy = get_random_translate(last_translates, scale*CARD_WIDTH, scale*CARD_HEIGHT, PREVENT_OVERLAPPING)
 
             remaining_classes = list(remaining_images_by_class.keys())
@@ -432,6 +478,8 @@ def main() -> None:
 
             card_image = blur_image(card_image, blur)
 
+            card_image = change_image_brightness(card_image, brightness)
+
             background_image = overlay_images(background_image, card_image)
 
             # background_image = draw_bounding_box(background_image, bounding_box)
@@ -439,6 +487,11 @@ def main() -> None:
             yolo_OBB = create_yolo_OBB(random_card_class, bounding_box, background_image.shape)
 
             background_image_OBBs.append(yolo_OBB)
+
+        noise_type = random.choice(["gaussian", "salt_and_pepper"])
+        noise_intensity = random.uniform(NOISE_RANGE.min, NOISE_RANGE.max)
+
+        background_image = add_noise_to_image(background_image, noise_type, noise_intensity)
 
         dataset_batch.append((background_image, background_image_OBBs))
 

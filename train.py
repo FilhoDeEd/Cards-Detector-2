@@ -6,8 +6,8 @@ MODEL_NAME = 'cards_detector'
 YOLO_BASE_MODEL = 'yolov8n-obb.pt'
 DATASET_YAML_PATH = 'datasets/cards_detector_42/data.yml'
 IMAGE_SIZE = 960
-BATCH = 4
-EPOCHS = 50
+BATCH = 0.8
+EPOCHS = 100
 
 
 def main() -> None:
@@ -18,6 +18,7 @@ def main() -> None:
         batch=BATCH,
         imgsz=IMAGE_SIZE,
         project='runs/train',
+        #resume=True,
         name=MODEL_NAME
     )
 

@@ -5,8 +5,8 @@ from time import sleep
 from ultralytics import YOLO
 
 
-model_path = 'runs/train/cards_detector2/weights/best.pt'
-test_folder = 'datasets/cards_detector_42/test/images'
+model_path = 'models/best.pt'
+test_folder = 'datasets/cards_detector_42/train/images'
 
 cv2.namedWindow('tela')
 

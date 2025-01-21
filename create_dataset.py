@@ -25,8 +25,8 @@ TRAIN_SPLIT = 0.5
 TEST_SPLIT = 0.3
 VALIDATION_SPLIT = 0.2
 MAX_DATASET_BATCH = 500
-RANDOM_IMAGES_AMOUNT = 4000 #4984     # Until 31368
-WHITE_IMAGES_AMOUNT = 1000 #2016      # Until 2016
+RANDOM_IMAGES_AMOUNT = 4000           # Until 31368
+WHITE_IMAGES_AMOUNT = 1500            # Until 2016
 NO_LABELS_AMOUNT = 500
 
 CARD_WIDTH = 200                      # Other 250
@@ -41,8 +41,8 @@ SHEAR_X_RANGE = Range(-0.06, 0.06)
 SHEAR_Y_RANGE = Range(-0.06, 0.06)
 SCALE_RANGE = Range(0.7, 1.5)
 BLUR_RANGE = Range(3, 7)
-NOISE_RANGE = Range(0.02, 0.1)
-BRIGHTNESS_RANGE = Range(0.4, 0.8)
+NOISE_RANGE = Range(0.02, 0.08)
+BRIGHTNESS_RANGE = Range(0.6, 0.9)
 
 TRANSLATE_STEP = 50
 PREVENT_OVERLAPPING = True
@@ -435,8 +435,7 @@ def main() -> None:
     background_images_count = len(background_images)
     images_per_class = background_images_count // len(card_classes)
 
-    if (CARDS_RANGE.max - CARDS_RANGE.min) > 1:
-        images_per_class = ((CARDS_RANGE.min + CARDS_RANGE.max) // 2) * images_per_class
+    images_per_class = int(((CARDS_RANGE.min + CARDS_RANGE.max) / 2) * images_per_class)
     remaining_images_by_class = {card_class: images_per_class for card_class in card_classes}
 
     random.shuffle(background_images)
@@ -508,8 +507,8 @@ def main() -> None:
 
             background_image = overlay_images(background_image, card_image)
 
-            background_image = draw_bounding_box(background_image, top_left_bbox)
-            background_image = draw_bounding_box(background_image, bottom_right_bbox)
+            #background_image = draw_bounding_box(background_image, top_left_bbox)
+            #background_image = draw_bounding_box(background_image, bottom_right_bbox)
 
             top_left_yolo_OBB = create_yolo_OBB(random_card_class, top_left_bbox, background_image.shape)
             bottom_right_yolo_OBB = create_yolo_OBB(random_card_class, bottom_right_bbox, background_image.shape)

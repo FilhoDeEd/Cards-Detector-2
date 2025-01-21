@@ -36,13 +36,13 @@ BACKGROUND_SIZE = 960
 CARDS_PATH = 'datasets/cards'
 
 CARDS_RANGE = Range(1, 2)
-ANGLE_RANGE = Range(-90, 90)
+ANGLE_RANGE = Range(-15, 15)
 SHEAR_X_RANGE = Range(-0.06, 0.06)
 SHEAR_Y_RANGE = Range(-0.06, 0.06)
 SCALE_RANGE = Range(0.7, 1.5)
 BLUR_RANGE = Range(3, 7)
-NOISE_RANGE = Range(0.02, 0.14)
-BRIGHTNESS_RANGE = Range(0.4, 0.9)
+NOISE_RANGE = Range(0.02, 0.1)
+BRIGHTNESS_RANGE = Range(0.4, 0.8)
 
 TRANSLATE_STEP = 50
 PREVENT_OVERLAPPING = True
@@ -52,35 +52,35 @@ CLASSES = {
     1: ['8_of_diamonds'],
     2: ['2_of_hearts'],
     3: ['ace_of_diamonds'],
-    4: ['king_of_clubs2'],
+    4: ['king_of_clubs'],
     5: ['3_of_clubs'],
     6: ['4_of_clubs'],
-    7: ['jack_of_clubs2'],
+    7: ['jack_of_clubs'],
     8: ['5_of_hearts'],
     9: ['3_of_hearts'],
     10: ['ace_of_clubs'],
     11: ['4_of_hearts'],
-    12: ['ace_of_spades', 'ace_of_spades2'],
-    13: ['queen_of_clubs2'],
+    12: ['ace_of_spades', 'ace_of_spades'],
+    13: ['queen_of_clubs'],
     14: ['2_of_spades'],
-    15: ['king_of_spades2'],
+    15: ['king_of_spades'],
     16: ['2_of_diamonds'],
-    17: ['jack_of_diamonds2'],
-    18: ['king_of_diamonds2'],
+    17: ['jack_of_diamonds'],
+    18: ['king_of_diamonds'],
     19: ['5_of_clubs'],
-    20: ['king_of_hearts2'],
+    20: ['king_of_hearts'],
     21: ['3_of_diamonds'],
     22: ['9_of_diamonds'],
     23: ['ace_of_hearts'],
     24: ['6_of_clubs'],
     25: ['4_of_diamonds'],
-    26: ['jack_of_hearts2'],
-    27: ['queen_of_spades2'],
+    26: ['jack_of_hearts'],
+    27: ['queen_of_spades'],
     28: ['9_of_clubs'],
     29: ['5_of_diamonds'],
     30: ['9_of_hearts'],
     31: ['7_of_spades'],
-    32: ['queen_of_diamonds2'],
+    32: ['queen_of_diamonds'],
     33: ['8_of_hearts'],
     34: ['8_of_clubs'],
     35: ['6_of_diamonds'],
@@ -88,13 +88,13 @@ CLASSES = {
     37: ['8_of_spades'],
     38: ['7_of_diamonds'],
     39: ['6_of_hearts'],
-    40: ['jack_of_spades2'],
+    40: ['jack_of_spades'],
     41: ['4_of_spades'],
     42: ['3_of_spades'],
     43: ['10_of_hearts'],
     44: ['7_of_hearts'],
     45: ['2_of_clubs'],
-    46: ['queen_of_hearts2'],
+    46: ['queen_of_hearts'],
     47: ['10_of_diamonds'],
     48: ['10_of_clubs'],
     49: ['7_of_clubs'],
@@ -244,11 +244,9 @@ def add_noise_to_image(image: MatLike, noise_type: str = "gaussian", intensity: 
         num_salt = int(salt_pepper_ratio * total_pixels)
         num_pepper = total_pixels - num_salt
 
-        # Adiciona sal (branco)
         coords = [np.random.randint(0, i - 1, num_salt) for i in image.shape[:2]]
         noisy_image[coords[0], coords[1]] = 255
 
-        # Adiciona pimenta (preto)
         coords = [np.random.randint(0, i - 1, num_pepper) for i in image.shape[:2]]
         noisy_image[coords[0], coords[1]] = 0
     else:
@@ -437,7 +435,8 @@ def main() -> None:
     background_images_count = len(background_images)
     images_per_class = background_images_count // len(card_classes)
 
-    images_per_class = ((CARDS_RANGE.min + CARDS_RANGE.max) // 2) * images_per_class
+    if (CARDS_RANGE.max - CARDS_RANGE.min) > 1:
+        images_per_class = ((CARDS_RANGE.min + CARDS_RANGE.max) // 2) * images_per_class
     remaining_images_by_class = {card_class: images_per_class for card_class in card_classes}
 
     random.shuffle(background_images)
@@ -509,8 +508,8 @@ def main() -> None:
 
             background_image = overlay_images(background_image, card_image)
 
-            #background_image = draw_bounding_box(background_image, top_left_bbox)
-            #background_image = draw_bounding_box(background_image, bottom_right_bbox)
+            background_image = draw_bounding_box(background_image, top_left_bbox)
+            background_image = draw_bounding_box(background_image, bottom_right_bbox)
 
             top_left_yolo_OBB = create_yolo_OBB(random_card_class, top_left_bbox, background_image.shape)
             bottom_right_yolo_OBB = create_yolo_OBB(random_card_class, bottom_right_bbox, background_image.shape)

@@ -1,16 +1,8 @@
 # Detector de Cartas
 
-## Sistema de Detecção de Cartas de Baralho com OpenCV
+## Sistema de Detecção de Cartas de Baralho com YOLO
 
-Este projeto utiliza **técnicas de processamento de imagens** para detectar a cor e o número de uma carta de baralho padrão (52 cartas) capturada em tempo real por uma webcam. Ele identifica se a carta é vermelha ou preta e estima o número com base na contagem de símbolos visíveis. 
-
-A detecção, entretanto, é limitada às cartas de Ás a 10. **Não identifica**:
-
-- Naipes;
-- Ás de Espadas (♠);
-- Valetes (J);
-- Damas (Q);
-- Reis (K)
+Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas de baralho padrão (52 cartas) em tempo real, capturadas por uma webcam. Por meio do modelo **YOLO (You Only Look Once)**, o sistema é capaz de reconhecer cada carta de forma específica, indicando tanto o número ou nome (como "2", "Rei" ou "Ás") quanto o naipe correspondente (como "Copas", "Ouros", "Espadas" ou "Paus"). Essa abordagem permite uma identificação rápida e precisa das cartas, mesmo em condições de variação de iluminação ou ângulo.
 
 ## Demonstração
 ![Demonstração usando 9 de paus e Ás de ouros](https://github.com/FilhoDeEd/Cards-Detector/blob/main/assets/demo.gif)
@@ -21,6 +13,7 @@ A detecção, entretanto, é limitada às cartas de Ás a 10. **Não identifica*
 
 - **Python 3**
 - **OpenCV (cv2)**
+- **Ultralytics**
 - **Baralho ou imagem de uma carta**
 
 ### Passos para Instalar
@@ -39,12 +32,19 @@ A detecção, entretanto, é limitada às cartas de Ás a 10. **Não identifica*
      pip install opencv-python
      ```
 
+3. **Instalar a Biblioteca Ultralytics**
+   - Abra o terminal e execute o seguinte comando para instalar a biblioteca:
+
+      ```bash
+      pip install ultralytics
+      ```
+
 ## Como Usar
 
 1. **Clone o Repositório**
 
 ```bash
-   git clone https://github.com/FilhoDeEd/Cards-Detector.git
+   git clone https://github.com/FilhoDeEd/Cards-Detector-2.git
 ```
 
 2. **Execute o código**
@@ -82,4 +82,4 @@ A detecção, entretanto, é limitada às cartas de Ás a 10. **Não identifica*
 - Marcos Henrique Maimoni Campanella;
 - Rodolfo Henrique Raymundo Engelmann;
 
-### Engenharia da Computação - IFSP Piracicaba. Novembro, 2024
+### Engenharia da Computação - IFSP Piracicaba. Janeiro, 2025

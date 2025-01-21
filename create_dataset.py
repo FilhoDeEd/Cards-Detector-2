@@ -17,7 +17,7 @@ from typing import Any, List, Tuple
 Range = namedtuple('Range', ['min', 'max'])
 
 
-SEED = 1025
+SEED = 1024
 random.seed(SEED)
 
 NEW_DATASET_PATH = f'datasets/cards_detector_{SEED}'
@@ -25,8 +25,9 @@ TRAIN_SPLIT = 0.5
 TEST_SPLIT = 0.3
 VALIDATION_SPLIT = 0.2
 MAX_DATASET_BATCH = 500
-RANDOM_IMAGES_AMOUNT = 700 #4984     # Until 31368
-WHITE_IMAGES_AMOUNT = 300 #2016      # Until 2016
+RANDOM_IMAGES_AMOUNT = 4000 #4984     # Until 31368
+WHITE_IMAGES_AMOUNT = 1000 #2016      # Until 2016
+NO_LABELS_AMOUNT = 500
 
 CARD_WIDTH = 200                      # Other 250
 CARD_HEIGHT = 290                     # Other 363
@@ -34,11 +35,11 @@ CARD_DIAGONAL = math.hypot(CARD_WIDTH, CARD_HEIGHT)
 BACKGROUND_SIZE = 960
 CARDS_PATH = 'datasets/cards'
 
-CARDS_RANGE = Range(0, 4)
+CARDS_RANGE = Range(1, 2)
 ANGLE_RANGE = Range(-90, 90)
-SHEAR_X_RANGE = Range(-0.1, 0.1)
-SHEAR_Y_RANGE = Range(-0.1, 0.1)
-SCALE_RANGE = Range(0.7, 1.2)
+SHEAR_X_RANGE = Range(-0.06, 0.06)
+SHEAR_Y_RANGE = Range(-0.06, 0.06)
+SCALE_RANGE = Range(0.7, 1.5)
 BLUR_RANGE = Range(3, 7)
 NOISE_RANGE = Range(0.02, 0.14)
 BRIGHTNESS_RANGE = Range(0.4, 0.9)
@@ -271,24 +272,38 @@ def change_image_brightness(image: MatLike, brightness_factor: float) -> MatLike
         return np.clip(image, 0, 255).astype(np.uint8)
 
 
-def find_bounding_box(image: MatLike) -> NDArray:
+
+def find_bounding_boxes(image: NDArray) -> tuple[NDArray, NDArray]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
-    
     _, threshold = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if contours:
         x, y, w, h = cv2.boundingRect(contours[0])
 
-        return np.array([
+        sub_width = w * 0.22
+        sub_height = h * 0.27
+
+        top_left_bbox = np.array([
             [x, y],
-            [x + w, y],
-            [x + w, y + h],
-            [x, y + h],
+            [x + sub_width, y],
+            [x + sub_width, y + sub_height],
+            [x, y + sub_height],
         ], dtype=np.float32)
 
+        bottom_right_bbox = np.array([
+            [x + w - sub_width, y + h - sub_height],
+            [x + w, y + h - sub_height],
+            [x + w, y + h],
+            [x + w - sub_width, y + h],
+        ], dtype=np.float32)
 
-def rotate_bounding_box(bounding_box: NDArray, angle: float) -> NDArray:
+        return top_left_bbox, bottom_right_bbox
+
+    return None, None
+
+
+def rotate_bounding_box(bounding_box: NDArray, angle: float, center: List[float]) -> NDArray:
     angle_rad = np.deg2rad(angle)
 
     rotation_matrix = np.array([
@@ -296,7 +311,8 @@ def rotate_bounding_box(bounding_box: NDArray, angle: float) -> NDArray:
         [-np.sin(angle_rad), np.cos(angle_rad)]
     ], dtype=np.float32)
 
-    rotated_bounding_box = np.dot(bounding_box - bounding_box.mean(axis=0), rotation_matrix.T) + bounding_box.mean(axis=0)
+    center = np.array(center, dtype=np.float32)
+    rotated_bounding_box = np.dot(bounding_box - center, rotation_matrix.T) + center
 
     return rotated_bounding_box
 
@@ -329,6 +345,10 @@ def draw_bounding_box(image: MatLike, bounding_box: NDArray) -> NDArray:
         cv2.line(image, tuple(bounding_box[i]), tuple(bounding_box[(i+1) % 4]), (0, 255, 0), 2)
 
     return image
+
+
+def chance(probability: float) -> bool:
+    return random.random() < probability
 
 
 def overlay_images(background_image, card_image): 
@@ -425,10 +445,10 @@ def main() -> None:
     dataset_batch = []
 
     progress = 0
-    total = len(background_images)
+    TOTAL = len(background_images)
 
     for background_image_path in background_images:
-        print(f'PROGRESS: {progress}/{total}')
+        print(f'PROGRESS: {progress}/{TOTAL}')
 
         try:
             background_image = cv2.imread(background_image_path)
@@ -441,7 +461,10 @@ def main() -> None:
         last_translates = []
         background_image_OBBs = []
         background_image_filename = os.path.basename(background_image_path)
-        number_cards = random.randint(CARDS_RANGE.min, CARDS_RANGE.max)
+        if chance(NO_LABELS_AMOUNT/TOTAL):
+            number_cards = 0
+        else:
+            number_cards = random.randint(CARDS_RANGE.min, CARDS_RANGE.max)
 
         if sum(list(remaining_images_by_class.values())) < number_cards:
             break
@@ -468,13 +491,17 @@ def main() -> None:
 
             card_image = scale_image(card_image, scale)
 
-            bounding_box = find_bounding_box(card_image)
+            top_left_bbox, bottom_right_bbox = find_bounding_boxes(card_image)
 
             card_image = rotate_image(card_image, angle)
-            bounding_box = rotate_bounding_box(bounding_box, angle)
+            height, width, _ = card_image.shape
+            center = [width // 2, height // 2]
+            top_left_bbox = rotate_bounding_box(top_left_bbox, angle, center)
+            bottom_right_bbox = rotate_bounding_box(bottom_right_bbox, angle, center)
 
             card_image = translate_image(card_image, dx, dy)
-            bounding_box = translate_bounding_box(bounding_box, dx, dy)
+            top_left_bbox = translate_bounding_box(top_left_bbox, dx, dy)
+            bottom_right_bbox = translate_bounding_box(bottom_right_bbox, dx, dy)
 
             card_image = blur_image(card_image, blur)
 
@@ -482,11 +509,14 @@ def main() -> None:
 
             background_image = overlay_images(background_image, card_image)
 
-            # background_image = draw_bounding_box(background_image, bounding_box)
+            #background_image = draw_bounding_box(background_image, top_left_bbox)
+            #background_image = draw_bounding_box(background_image, bottom_right_bbox)
 
-            yolo_OBB = create_yolo_OBB(random_card_class, bounding_box, background_image.shape)
+            top_left_yolo_OBB = create_yolo_OBB(random_card_class, top_left_bbox, background_image.shape)
+            bottom_right_yolo_OBB = create_yolo_OBB(random_card_class, bottom_right_bbox, background_image.shape)
 
-            background_image_OBBs.append(yolo_OBB)
+            background_image_OBBs.append(top_left_yolo_OBB)
+            background_image_OBBs.append(bottom_right_yolo_OBB)
 
         noise_type = random.choice(["gaussian", "salt_and_pepper"])
         noise_intensity = random.uniform(NOISE_RANGE.min, NOISE_RANGE.max)

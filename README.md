@@ -12,8 +12,9 @@ Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas d
 ### Pré-requisitos
 
 - **Python 3**
-- **OpenCV (cv2)**
+- **PyTorch**
 - **Ultralytics**
+- **requirements**
 - **Baralho ou imagem de uma carta**
 
 ### Passos para Instalar
@@ -26,11 +27,9 @@ Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas d
      python --version
      ```
 
-2. **Instalar o OpenCV**
-   - No terminal, execute o seguinte comando:
-     ```bash
-     pip install opencv-python
-     ```
+2. **Instalar o PyTorch**  
+   - A instalação do PyTorch varia dependendo das configurações do seu computador, como o sistema operacional, a versão do Python e se você utiliza CPU ou GPU.  
+   - Para garantir uma instalação correta, acesse o site oficial do PyTorch e siga as instruções específicas para o seu ambiente:      [PyTorch - Get Started](https://pytorch.org/get-started/locally/)  
 
 3. **Instalar a Biblioteca Ultralytics**
    - Abra o terminal e execute o seguinte comando para instalar a biblioteca:
@@ -38,6 +37,13 @@ Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas d
       ```bash
       pip install ultralytics
       ```
+
+4. **Instalar as dependências**  
+   - Certifique-se de que todas as dependências necessárias sejam instaladas utilizando o arquivo `requirements.txt`.  
+   - No terminal, execute o seguinte comando:  
+     ```bash
+     pip install -r requirements.txt
+     ``` 
 
 ## Como Usar
 
@@ -50,31 +56,73 @@ Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas d
 2. **Execute o código**
 - Na pasta do repositório, execute o comando para iniciar a identificação de cartas:
 ```bash
-   python main.py
+   python predict.py
 ```
 
 3. **Aproxime a carta desejada no local indicado**
 
-## Estrutura do Código
+## Descrição do Código - Criação de Dataset para Detecção de Cartas
 
-1. **Definição do Filtro e Máscara**
-   - Configura um filtro HSV para detectar a cor vermelha.
-   - Cria uma máscara retangular para delimitar a área de interesse da carta.
+1. **Configurações Iniciais**  
+   - Define os parâmetros globais, como dimensões das imagens e proporções para dividir o dataset em treino, teste e validação.  
+   - Mapeia IDs numéricos às classes das cartas de baralho.
 
-2. **Configuração da Webcam**
-   - A webcam é inicializada e configurada para capturar imagens em uma resolução de 1280x720.
-   - Se não for possível abrir a câmera, o script exibe uma mensagem de erro e encerra o programa.
+2. **Transformações de Imagens**  
+   - Aplica diversas modificações nas imagens das cartas:  
+     - **Rotação, Escalonamento e Cisalhamento:** Altera a orientação e o tamanho das cartas.  
+     - **Ruído e Brilho:** Introduz variações para simular diferentes condições visuais.  
+     - **Borramento:** Suaviza a imagem para testar o desempenho em casos de baixa nitidez.
 
-3. **Processamento de Imagem**
-   - O código captura a imagem da câmera e processa cada frame para identificar a cor e o número da carta:
-     - **Detectar Cor**: Verifica se a carta é vermelha ou preta.
-     - **Contar Símbolos**: Utiliza SimpleBlobDetector para contar o número de símbolos do naipe presentes na carta, permitindo identificar seu valor.
+3. **Sobreposição de Imagens**  
+   - Combina imagens transformadas de cartas com fundos variados.  
+   - Realiza validação para evitar sobreposição entre as cartas no mesmo fundo.
 
-4. **Exibição da Imagem Processada**
-   - Exibe o resultado com a cor e numeração da carta.
+4. **Anotações e Formato YOLO**  
+   - Calcula caixas delimitadoras orientadas para cada carta detectada.  
+   - Converte as anotações para o formato YOLO, facilitando o treinamento de modelos de detecção.
+
+5. **Divisão e Organização do Dataset**  
+   - Divide automaticamente as imagens geradas em conjuntos de treino, teste e validação.  
+   - Salva os arquivos em diretórios separados para imagens e anotações.
+
+6. **Fontes de Dados**  
+   - **Imagens de Fundo:** Obtidas de datasets do Kaggle e arquivos ZIP no Google Drive.  
+   - **Imagens de Cartas:** Armazenadas localmente no sistema de arquivos.
+
+7. **Execução do Código**  
+   - A função `main()` realiza todo o fluxo de geração do dataset, desde o carregamento dos fundos até o armazenamento das imagens e anotações.  
+   - Dependências como OpenCV e NumPy são essenciais para o funcionamento.
+
+8. **Personalização**  
+   - Ajuste parâmetros de transformação como `ANGLE_RANGE` e `SCALE_RANGE` para alterar as variações nas imagens.  
+   - Modifique `TRAIN_SPLIT`, `TEST_SPLIT` e `VALIDATION_SPLIT` para mudar a proporção de divisão do dataset.  
+
+9. **Encerramento**  
+   - O pipeline finaliza com a criação de um dataset estruturado, pronto para ser usado em treinamentos de modelos de detecção e reconhecimento de objetos.
+
+
+## Descrição do Código - Detecção com YOLO
+
+1. **Inicialização do Modelo e Configuração**
+   - Carrega o modelo YOLO utilizando o caminho do arquivo `models/best.pt`.
+   - Configura uma janela de exibição com o nome "tela".
+   - Inicializa a webcam para captura de vídeo. Caso a webcam não esteja acessível, o programa exibe uma mensagem de erro e encerra a execução.
+
+2. **Função de Redimensionamento e Recorte**
+   - Define a função `resize_and_crop_to_square`, que redimensiona a imagem mantendo a proporção e corta o centro para obter um frame quadrado de tamanho fixo (960x960 pixels).
+
+3. **Captura e Processamento de Imagens**
+   - Lê frames da webcam em um loop contínuo.
+   - Redimensiona e recorta cada frame para garantir o formato quadrado necessário para o modelo YOLO.
+   - Realiza a inferência no frame processado usando o modelo YOLO, que detecta objetos e retorna resultados anotados.
+
+4. **Exibição de Resultados**
+   - Mostra os frames anotados em uma janela chamada "tela".
+   - Atualiza a janela em tempo real enquanto o programa processa os frames.
 
 5. **Encerramento**
-   - Pressione a tecla 'q' para encerrar a captura e fechar a janela.
+   - Permite encerrar o programa ao pressionar a tecla 'q', liberando os recursos da webcam e fechando as janelas do OpenCV.
+
 
 ## Autores
 - André Lisboa Augusto; 

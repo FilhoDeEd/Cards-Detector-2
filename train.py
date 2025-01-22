@@ -3,11 +3,11 @@ from ultralytics import YOLO
 
 
 MODEL_NAME = 'cards_detector'
-YOLO_BASE_MODEL = 'yolov8n-obb.pt'
+YOLO_BASE_MODEL = 'yolov8m-obb.pt'
 DATASET_YAML_PATH = 'datasets/cards_detector_42/data.yml'
 IMAGE_SIZE = 960
 BATCH = 0.8
-EPOCHS = 100
+EPOCHS = 50
 
 
 def main() -> None:

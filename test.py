@@ -6,7 +6,7 @@ from ultralytics import YOLO
 
 
 model_path = 'models/best.pt'
-test_folder = 'datasets/cards_detector_42/train/images'
+test_folder = 'datasets/cards_detector_42/test/images'
 
 cv2.namedWindow('tela')
 

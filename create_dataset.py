@@ -6,6 +6,7 @@ import math
 import numpy as np
 import os
 import random
+import shutil
 import zipfile
 
 from collections import namedtuple
@@ -17,7 +18,7 @@ from typing import Any, List, Tuple
 Range = namedtuple('Range', ['min', 'max'])
 
 
-SEED = 1024
+SEED = 42
 random.seed(SEED)
 
 NEW_DATASET_PATH = f'datasets/cards_detector_{SEED}'
@@ -41,7 +42,7 @@ SHEAR_X_RANGE = Range(-0.06, 0.06)
 SHEAR_Y_RANGE = Range(-0.06, 0.06)
 SCALE_RANGE = Range(0.7, 1.5)
 BLUR_RANGE = Range(3, 7)
-NOISE_RANGE = Range(0.02, 0.08)
+NOISE_RANGE = Range(0.02, 0.065)
 BRIGHTNESS_RANGE = Range(0.6, 0.9)
 
 TRANSLATE_STEP = 50
@@ -230,14 +231,14 @@ def is_overlapping(rect1, rect2):
     return not (x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1)
 
 
-def add_noise_to_image(image: MatLike, noise_type: str = "gaussian", intensity: float = 0.1) -> MatLike:
-    if noise_type == "gaussian":
+def add_noise_to_image(image: MatLike, noise_type: str = 'gaussian', intensity: float = 0.1) -> MatLike:
+    if noise_type == 'gaussian':
         mean = 0
         stddev = intensity * 255
         gaussian_noise = np.random.normal(mean, stddev, image.shape).astype(np.float32)
         noisy_image = cv2.add(image.astype(np.float32), gaussian_noise)
         noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
-    elif noise_type == "salt_and_pepper":
+    elif noise_type == 'salt_and_pepper':
         noisy_image = image.copy()
         salt_pepper_ratio = 0.5
         total_pixels = int(intensity * image.size)
@@ -516,7 +517,7 @@ def main() -> None:
             background_image_OBBs.append(top_left_yolo_OBB)
             background_image_OBBs.append(bottom_right_yolo_OBB)
 
-        noise_type = random.choice(["gaussian", "salt_and_pepper"])
+        noise_type = random.choice(['gaussian', 'salt_and_pepper'])
         noise_intensity = random.uniform(NOISE_RANGE.min, NOISE_RANGE.max)
 
         background_image = add_noise_to_image(background_image, noise_type, noise_intensity)
@@ -532,6 +533,8 @@ def main() -> None:
     if len(dataset_batch) > 0:
         write_dataset(background_image_filename, dataset_batch, TRAIN_SPLIT, TEST_SPLIT)
         dataset_batch = []
+
+    shutil.copy('data.yml', os.path.join(NEW_DATASET_PATH, 'data.yml'))
 
 
 if __name__ == '__main__':

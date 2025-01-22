@@ -36,6 +36,7 @@ while True:
         print("Falha ao capturar imagem!")
         break
 
+    frame = cv2.flip(frame, 1)
     frame = resize_and_crop_to_square(frame)
 
     results = model.predict(frame)

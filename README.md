@@ -122,9 +122,14 @@ Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas d
 
 
 ## Autores
-- André Lisboa Augusto; 
-- Edson Rodrigues da Cruz Filho;
-- Marcos Henrique Maimoni Campanella;
-- Rodolfo Henrique Raymundo Engelmann;
+
+- Edson Rodrigues da Cruz Filho   (edson.rodrigues@aluno.ifsp.com.br)
+
+- Marcos Henrique Maimoni Campanella   (marcos.campanella@alno.ifsp.edu.br)
+
+- Rodolfo Henrique Raymundo Engelmann   (rodolfo.engelmann@aluno.ifsp.edu.br)
+
+- André Lisboa Augusto   (andre.lisboa@aluno.ifsp.edu.br)
+
 
 ### Engenharia da Computação - IFSP Piracicaba. Janeiro, 2025

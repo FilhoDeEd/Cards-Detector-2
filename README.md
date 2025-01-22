@@ -4,9 +4,6 @@
 
 Este projeto utiliza **Inteligência Artificial (IA)** para identificar cartas de baralho padrão (52 cartas) em tempo real, capturadas por uma webcam. Por meio do modelo **YOLO (You Only Look Once)**, o sistema é capaz de reconhecer cada carta de forma específica, indicando tanto o número ou nome (como "2", "Rei" ou "Ás") quanto o naipe correspondente (como "Copas", "Ouros", "Espadas" ou "Paus"). Essa abordagem permite uma identificação rápida e precisa das cartas, mesmo em condições de variação de iluminação ou ângulo.
 
-## Demonstração
-![Demonstração usando 9 de paus e Ás de ouros](https://github.com/FilhoDeEd/Cards-Detector/blob/main/assets/demo.gif)
-
 ## Instalação
 
 ### Pré-requisitos

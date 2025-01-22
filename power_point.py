@@ -1,6 +1,7 @@
 import cv2
 from create_dataset import (
     read_card,
+    read_background,
     shear_image,
     scale_image,
     find_bounding_boxes,
@@ -96,7 +97,7 @@ cv2.imshow('Demo', brightness)
 cv2.waitKey(0)
 
 # Carregar e sobrepor com o plano de fundo
-background = cv2.imread(BACKGROUND_IMAGE_PATH)
+background = read_background(BACKGROUND_IMAGE_PATH)
 overlay = overlay_images(background_image=background, card_image=brightness)
 cv2.imshow('Demo', overlay)
 cv2.waitKey(0)

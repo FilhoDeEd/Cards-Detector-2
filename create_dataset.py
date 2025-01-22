@@ -116,6 +116,13 @@ def read_card(card_name: str) -> MatLike:
     return transparent_background
 
 
+def read_background(background_path: str) -> MatLike:
+    background_image = cv2.imread(background_path)
+    background_image = cv2.resize(background_image, (BACKGROUND_SIZE, BACKGROUND_SIZE))
+    background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2BGRA)
+
+    return background_image
+
 def rotate_image(image: MatLike, angle: float) -> MatLike:
     height, width, _ = image.shape
     center = (width // 2, height // 2)
@@ -450,9 +457,7 @@ def main() -> None:
         print(f'PROGRESS: {progress}/{TOTAL}')
 
         try:
-            background_image = cv2.imread(background_image_path)
-            background_image = cv2.resize(background_image, (BACKGROUND_SIZE, BACKGROUND_SIZE))
-            background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2BGRA)
+            background_image = read_background(background_image_path)
         except Exception as e:
             print(f'Erro ao processar {background_image_path}: {e}')
             continue
